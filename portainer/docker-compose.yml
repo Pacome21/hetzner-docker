@@ -1,0 +1,19 @@
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: always
+    labels:
+      - wud.watch=true
+      - wud.trigger.include=dockercompose.portainer
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "9443:9443"   # Interface Web HTTPS (recommandé)
+      #- "8000:8000"   # Edge Agent (optionnel)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+
+volumes:
+  portainer_data:

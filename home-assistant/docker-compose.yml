@@ -1,0 +1,28 @@
+services:
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      net.ipv4.conf.all.src_valid_mark: 1
+    volumes:
+      - ./wireguard:/config
+    ports:
+      - "8123:8123"
+    restart: unless-stopped
+
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
+    network_mode: service:wireguard
+    depends_on:
+      - wireguard
+    volumes:
+      - ./config:/config
+    environment:
+      TZ: Europe/Paris
+    restart: unless-stopped

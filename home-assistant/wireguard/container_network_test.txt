@@ -1,0 +1,14 @@
+Test de connectivité vers le LAN distant (192.168.1.x)
+
+Commande (depuis l’hôte Docker) :
+  docker exec wireguard ping -c 2 -W 3 192.168.1.114
+
+Remplacer 192.168.1.114 par une IP connue sur le réseau distant.
+
+Dernière exécution automatisée : 100 % packet loss — si c’est votre cas après
+avoir appliqué server_forwarding_reference.txt sur le serveur WireGuard, vérifier
+forwarding/NAT/firewall et que l’appareil répond au ping.
+
+Interprétation (voir plan) :
+  ping OK, intégration KO → config intégration / mDNS / URL / auth
+  ping KO → serveur WireGuard, routes, pare-feu
