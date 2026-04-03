@@ -11,6 +11,7 @@ paperless-ngx/import/
 
 # Home Assistant — secrets and runtime
 home-assistant/config/secrets.yaml
+home-assistant/config/home-assistant_v2.db*
 home-assistant/config/.storage/
 home-assistant/config/*.log*
 home-assistant/config/.ha_run.lock
