@@ -1,0 +1,53 @@
+# Tugtainer + socket-proxy (see https://github.com/Quenary/tugtainer/blob/main/docker-compose.app.yml).
+# Keep this stack isolated from other services you auto-update from Tugtainer.
+networks:
+  tugtainer:
+    driver: bridge
+
+volumes:
+  tugtainer_data:
+
+services:
+  socket-proxy:
+    image: lscr.io/linuxserver/socket-proxy:latest
+    container_name: tugtainer-socket-proxy
+    environment:
+      CONTAINERS: 1
+      EVENTS: 1
+      IMAGES: 1
+      INFO: 1
+      LOG_LEVEL: warning
+      PING: 1
+      NETWORKS: 1
+      POST: 1
+      TZ: Europe/Paris
+      VERSION: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /run
+    networks:
+      - tugtainer
+    labels:
+      dev.quenary.tugtainer.protected: "true"
+
+  tugtainer:
+    image: ghcr.io/quenary/tugtainer:1
+    container_name: tugtainer
+    depends_on:
+      - socket-proxy
+    volumes:
+      - tugtainer_data:/tugtainer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      DOCKER_HOST: tcp://socket-proxy:2375
+    networks:
+      - tugtainer
+    ports:
+      - "9412:80"
+    labels:
+      dev.quenary.tugtainer.protected: "true"

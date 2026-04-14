@@ -8,11 +8,12 @@ This repository holds several **independent** Docker Compose projects under `/op
 | [`home-assistant/`](home-assistant/) | Home Assistant behind WireGuard (shared network, port `8123` on the WireGuard side) |
 | [`paperless-ngx/`](paperless-ngx/) | Document management (Paperless-ngx, PostgreSQL, Redis, Tika, Gotenberg) |
 | [`portainer/`](portainer/) | Web UI for Docker management |
+| [`tugtainer/`](tugtainer/) | [Tugtainer](https://github.com/Quenary/tugtainer) — Docker image checks/updates with web UI (host port **9412**) |
 | [`whoami/`](whoami/) | Small HTTP echo service for testing routing and tunnels |
 
 ### Architecture overview
 
-Traffic from the internet typically reaches your apps through **Cloudflare Tunnel** (`cloudflared`), which connects outbound to Cloudflare and forwards to host ports you map in the tunnel config. **Paperless-ngx** is one internal app mesh (web + Redis + Postgres + converters). **Home Assistant** shares the **WireGuard** container’s network so the UI is reachable on **8123** via that stack’s published port.
+Traffic from the internet typically reaches your apps through **Cloudflare Tunnel** (`cloudflared`), which connects outbound to Cloudflare and forwards to host ports you map in the tunnel config. **Paperless-ngx** is one internal app mesh (web + Redis + Postgres + converters). **Home Assistant** shares the **WireGuard** container’s network so the UI is reachable on **8123** via that stack’s published port. **Tugtainer** (optional) talks to Docker via a **socket-proxy** sidecar and offers a UI to check or apply container image updates.
 
 ```mermaid
 flowchart TB
@@ -42,6 +43,7 @@ flowchart TB
     end
 
     ptt["portainer (:9443)"]
+    tg["tugtainer (:9412)"]
     wh["whoami (:2001)"]
   end
 
@@ -97,6 +99,15 @@ Document scanning, OCR, and archive workflow. Web UI on host port **8000**.
 
 ---
 
+## `tugtainer/` — Tugtainer
+
+- **`socket-proxy`** (`lscr.io/linuxserver/socket-proxy`) — Read-only access to `docker.sock` for the API subset Tugtainer needs; see the [upstream compose](https://github.com/Quenary/tugtainer/blob/main/docker-compose.app.yml) for environment flags. Attached only to the internal **`tugtainer`** network.
+- **`tugtainer`** (`ghcr.io/quenary/tugtainer:1`) — Web UI on host port **9412** (maps to port 80 in the container). Persistent data in volume `tugtainer_data`. Uses `DOCKER_HOST=tcp://socket-proxy:2375` (no direct socket mount on the app container).
+
+Both services are labeled `dev.quenary.tugtainer.protected=true` so Tugtainer does not try to auto-update itself or the proxy from within the app (see [custom labels](https://github.com/Quenary/tugtainer/blob/main/README.md#custom-labels)). Complete the initial auth/password flow in the UI after first start. Remote hosts require a separate **Tugtainer Agent** stack (not included here). Notifications can use [Apprise URLs](https://github.com/Quenary/tugtainer/blob/main/README.md#notifications) directly in the Tugtainer UI (no separate Apprise API stack in this repo).
+
+---
+
 ## Secrets and gitignored files
 
 See [`.gitignore`](.gitignore): `.env` files, Paperless `docker-compose.env`, Home Assistant `secrets.yaml`, WireGuard `*.conf`, and Paperless data directories are excluded from version control. Copy any `*.example` files and fill in values before first run.
@@ -111,4 +122,4 @@ docker compose pull
 docker compose up -d
 ```
 
-Order of deployment is flexible; **Portainer** is an optional operational tool. **Cloudflared** requires a valid tunnel token or credentials in `cloudflare/.env`. **Home Assistant** requires WireGuard configuration under `home-assistant/wireguard/` before the stack is useful.
+Order of deployment is flexible; **Portainer** and **Tugtainer** are optional operational tools. **Cloudflared** requires a valid tunnel token or credentials in `cloudflare/.env`. **Home Assistant** requires WireGuard configuration under `home-assistant/wireguard/` before the stack is useful.
