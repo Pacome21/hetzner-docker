@@ -5,6 +5,3 @@ services:
     restart: unless-stopped
     command: tunnel run
     env_file: .env
-    labels:
-      - wud.watch=true
-      - wud.trigger.include=dockercompose.cloudflared

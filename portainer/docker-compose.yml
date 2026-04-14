@@ -3,9 +3,6 @@ services:
     image: portainer/portainer-ce:latest
     container_name: portainer
     restart: always
-    labels:
-      - wud.watch=true
-      - wud.trigger.include=dockercompose.portainer
     security_opt:
       - no-new-privileges:true
     ports:

@@ -8,12 +8,11 @@ This repository holds several **independent** Docker Compose projects under `/op
 | [`home-assistant/`](home-assistant/) | Home Assistant behind WireGuard (shared network, port `8123` on the WireGuard side) |
 | [`paperless-ngx/`](paperless-ngx/) | Document management (Paperless-ngx, PostgreSQL, Redis, Tika, Gotenberg) |
 | [`portainer/`](portainer/) | Web UI for Docker management |
-| [`whoami/`](whoami/) | Small HTTP echo service for testing routing and WUD triggers |
-| [`wud/`](wud/) | What’s Up Docker — image update watcher with compose-based redeploy triggers |
+| [`whoami/`](whoami/) | Small HTTP echo service for testing routing and tunnels |
 
 ### Architecture overview
 
-Traffic from the internet typically reaches your apps through **Cloudflare Tunnel** (`cloudflared`), which connects outbound to Cloudflare and forwards to host ports you map in the tunnel config. **WUD** talks to the Docker socket and can redeploy several stacks when images change. **Paperless-ngx** is one internal app mesh (web + Redis + Postgres + converters). **Home Assistant** shares the **WireGuard** container’s network so the UI is reachable on **8123** via that stack’s published port.
+Traffic from the internet typically reaches your apps through **Cloudflare Tunnel** (`cloudflared`), which connects outbound to Cloudflare and forwards to host ports you map in the tunnel config. **Paperless-ngx** is one internal app mesh (web + Redis + Postgres + converters). **Home Assistant** shares the **WireGuard** container’s network so the UI is reachable on **8123** via that stack’s published port.
 
 ```mermaid
 flowchart TB
@@ -44,8 +43,6 @@ flowchart TB
 
     ptt["portainer (:9443)"]
     wh["whoami (:2001)"]
-    wud_node["WUD (:3000)"]
-    sock[(docker.sock)]
   end
 
   CF <-->|tunnel| cfd
@@ -53,15 +50,9 @@ flowchart TB
   cfd -.->|hostname routes in CF config| wh
   cfd -.->|hostname routes in CF config| ptt
   cfd -.->|optional| wg
-
-  wud_node -->|watch / recreate containers| sock
-  wud_node -.->|docker compose triggers| cfd
-  wud_node -.->|docker compose triggers| stack_pn
-  wud_node -.->|docker compose triggers| ptt
-  wud_node -.->|docker compose triggers| wh
 ```
 
-Solid arrows are direct dependencies or data paths. Dashed lines from `cloudflared` are **not automatic**: they reflect whatever you configure in Cloudflare (public hostnames → `http://localhost:…` or similar). Dashed lines from **WUD** are automated compose-based redeploys for the mounted stacks.
+Solid arrows are direct dependencies or data paths. Dashed lines from `cloudflared` are **not automatic**: they reflect whatever you configure in Cloudflare (public hostnames → `http://localhost:…` or similar).
 
 ---
 
@@ -92,8 +83,6 @@ Document scanning, OCR, and archive workflow. Web UI on host port **8000**.
 - **`gotenberg`** — Converts documents (e.g. Office formats); Chromium is locked down (no JS, allow-list) for safer conversions including `.eml`.
 - **`tika`** — **Apache Tika** for text/metadata extraction; used with Gotenberg for rich document ingestion.
 
-Redis and the database are labeled `wud.watch=false` so WUD focuses on the main app image; the webserver is watched for updates.
-
 ---
 
 ## `portainer/` — Portainer CE
@@ -104,18 +93,7 @@ Redis and the database are labeled `wud.watch=false` so WUD focuses on the main 
 
 ## `whoami/` — Traefik Whoami
 
-- **`whoami`** (`traefik/whoami`) — Minimal HTTP service that returns request headers and identity; listens on **2001** (`--port=2001`). Useful for verifying reverse proxies, tunnels, or WUD’s compose triggers. The compose file uses an **armv7** image tag; adjust the image if your host is amd64 or arm64. Labeled for WUD watch and a specific trigger include name.
-
----
-
-## `wud/` — What’s Up Docker (WUD)
-
-- **`whatsupdocker`** (`getwud/wud`, container name **`wud`**) — Watches local Docker images and can notify or trigger updates. Mounts:
-
-  - Docker socket (to inspect running images).
-  - Compose stack directories: `whoami`, `portainer`, `cloudflare`, `paperless-ngx` (as `/stacks/...`).
-
-  Environment variables wire **docker compose** triggers so WUD can pull and recreate those stacks automatically (with prune) for: whoami, portainer, cloudflared, and paperless. A daily cron (`0 4 * * *`, UTC) runs the watcher; live Docker events watching is disabled. Health/UI on port **3000**.
+- **`whoami`** (`traefik/whoami`) — Minimal HTTP service that returns request headers and identity; listens on **2001** (`--port=2001`). Useful for verifying reverse proxies and tunnels. The compose file uses an **armv7** image tag; adjust the image if your host is amd64 or arm64.
 
 ---
 
@@ -133,4 +111,4 @@ docker compose pull
 docker compose up -d
 ```
 
-Order of deployment is flexible; **WUD** and **Portainer** are optional operational tools. **Cloudflared** requires a valid tunnel token or credentials in `cloudflare/.env`. **Home Assistant** requires WireGuard configuration under `home-assistant/wireguard/` before the stack is useful.
+Order of deployment is flexible; **Portainer** is an optional operational tool. **Cloudflared** requires a valid tunnel token or credentials in `cloudflare/.env`. **Home Assistant** requires WireGuard configuration under `home-assistant/wireguard/` before the stack is useful.

@@ -2,13 +2,9 @@ services:
   whoami:
     image: traefik/whoami:v1.11-armv7
     restart: none
-    labels:
-      - wud.watch=true
-      - wud.trigger.include=dockercompose.whoami
     ports:
       - "2001:2001"
     command:
       # It tells whoami to start listening on 2001 instead of 80
       - --port=2001
       - --name=iamfoo
-    

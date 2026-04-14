@@ -32,15 +32,11 @@ services:
   broker:
     image: docker.io/library/redis:8
     restart: unless-stopped
-    labels:
-      - wud.watch=false
     volumes:
       - redisdata:/data
   db:
     image: docker.io/library/postgres:18
     restart: unless-stopped
-    labels:
-      - wud.watch=false
     volumes:
       - pgdata:/var/lib/postgresql
     environment:
@@ -50,9 +46,6 @@ services:
   webserver:
     image: ghcr.io/paperless-ngx/paperless-ngx:latest
     restart: unless-stopped
-    labels:
-      - wud.watch=true
-      - wud.trigger.include=dockercompose.paperless
     depends_on:
       - db
       - broker
@@ -75,8 +68,6 @@ services:
   gotenberg:
     image: docker.io/gotenberg/gotenberg:8.25
     restart: unless-stopped
-    labels:
-      - wud.watch=false
     # The gotenberg chromium route is used to convert .eml files. We do not
     # want to allow external content like tracking pixels or even javascript.
     command:
@@ -86,8 +77,6 @@ services:
   tika:
     image: docker.io/apache/tika:latest
     restart: unless-stopped
-    labels:
-      - wud.watch=false
 volumes:
   data:
   media:
