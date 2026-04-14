@@ -20,3 +20,4 @@ home-assistant/wireguard/wg_confs/*.conf
 # Editor / OS noise
 .cursor/
 .DS_Store
+home-assistant/config/.cache/
