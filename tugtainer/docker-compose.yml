@@ -34,7 +34,7 @@ services:
       dev.quenary.tugtainer.protected: "true"
 
   tugtainer:
-    image: ghcr.io/quenary/tugtainer:1
+    image: ghcr.io/quenary/tugtainer:latest
     container_name: tugtainer
     depends_on:
       - socket-proxy
